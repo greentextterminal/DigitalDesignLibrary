@@ -34,7 +34,8 @@ module edge_detector #(
 );
 
   // reg declarations
-  reg edge_detect, rst_dly, signal_dly; // edge_detect is part of a case statement
+  reg rst_dly;
+  reg signal_dly;
 
   // creating a rst delay to prevent erroneous coming out of reset edge detections (RE and AE cases)
   always @ (posedge clk) begin
@@ -57,14 +58,11 @@ module edge_detector #(
   // and leaves only the case item logic corresponding to the EDGE_TYPE case
   always @ (*) begin
     case (EDGE_TYPE)
-      0 :      edge_detect = (signal & ~signal_dly) & ~rst_dly; // rising edge case
-      1 :      edge_detect = (~signal & signal_dly);            // falling edge case
-      2 :      edge_detect = (signal ^ signal_dly) & ~rst_dly;  // any edge case
-      default: edge_detect = 1'b0;                              // default case (prevent latching if illegal value entered for EDGE_TYPE)
+      0 :      edge_detected = (signal & ~signal_dly) & ~rst_dly; // rising edge case
+      1 :      edge_detected = (~signal & signal_dly);            // falling edge case
+      2 :      edge_detected = (signal ^ signal_dly) & ~rst_dly;  // any edge case
+      default: edge_detected = 1'b0;                              // default case (prevent latching if illegal value entered for EDGE_TYPE)
     endcase
   end
-
-  // driving the output flag
-  assign edge_detected = edge_detect;
   
 endmodule
