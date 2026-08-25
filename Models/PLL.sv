@@ -110,7 +110,7 @@ module PLLSimModel #(
             pll_lock_internal <= 1;
         end
     end
-
+   
     // ---------------Clock Period Calculation Function--------------
     // Function to calculate period from frequency (MHz to ns)
     function real calculate_period (
@@ -140,7 +140,112 @@ module PLLSimModel #(
             clk_out = ~clk_out;
         end
     endtask
-
     
+    // -------------------Reference Clock Monitor--------------------
+    /* Missing pulse watchdog: at each negedge, race the real next posedge against a one period timeout. Which occurs first wins
+       - posedge wins -> clock is healthy, timeout branch is disabled
+       - negedge wins -> no posedge arrived within a full period -> lost reference clock
+       
+                                     |<-expext a posedge here
+                                     |
+              _____       _____      |
+        _____|     |_____|     |_____|_____|_____|_____|_____|
+       0ns  10ns  20ns  30ns  40ns  50ns  60ns  70ns  80ns  90ns
+                               |<--------->|
+                                           ^end of watchdog
+    */
+    always @ (negedge ref_clk) begin
+        // capture immediately
+        static realtime negedge_time = $realtime;
+        if (pll_lock_internal) begin
+            fork : ref_clk_watchdog
+                // healthy path: next posedge arrives well before timeout
+                begin
+                    @(posedge ref_clk);
+                end
+                // timeout path: a full period passed, no posedge seen
+                begin
+                    #(REF_CLK_PERIOD_NS);
+                    if (~message_printed) begin
+                        // time when ref clk was lost
+                        $display("Ref clk was lost @ time=%.1f ns", negedge_time);
+                        // time when pll was unlocked
+                        $display("PLL unlocked @ time=%.1f ns", $realtime);
+                        message_printed = 1; // blocking so flag takes effect immediately
+                    end
+                    // unlock the PLL
+                    pll_lock_internal <= 0;
+                end
+            join_any // stop the other branch when one completes
+            disable ref_clk_watchdog
+        end
+    end
+    //
+    // Reset the pll lock tick counter the moment pll_lock_internal is deasserted (fires on falling edge)
+    always @ (negedge pll_lock_internal) begin
+        lock_tick_count <= 0;
+    end
+
+    // --------Clock Generator Task Calles with Enable Gating--------
+    // clk0_gen
+    always begin
+        if (~clk0_en | ~pll_lock_internal) begin
+            clk0 = 0;
+            wait(clk0_en & pll_lock_internal)
+        end
+        else begin
+            clk_gen(clk0_freq_mhz, clk0);
+        end
+    end
+    // clk1_gen
+    always begin
+        if (~clk1_en | ~pll_lock_internal) begin
+            clk1 = 0;
+            wait(clk1_en & pll_lock_internal)
+        end
+        else begin
+            clk_gen(clk1_freq_mhz, clk1);
+        end
+    end
+    // clk2_gen
+    always begin
+        if (~clk2_en | ~pll_lock_internal) begin
+            clk2 = 0;
+            wait(clk2_en & pll_lock_internal)
+        end
+        else begin
+            clk_gen(clk2_freq_mhz, clk2);
+        end
+    end
+    // clk3_gen
+    always begin
+        if (~clk3_en | ~pll_lock_internal) begin
+            clk3 = 0;
+            wait(clk3_en & pll_lock_internal)
+        end
+        else begin
+            clk_gen(clk3_freq_mhz, clk3);
+        end
+    end
+    // clk4_gen
+    always begin
+        if (~clk4_en | ~pll_lock_internal) begin
+            clk4 = 0;
+            wait(clk4_en & pll_lock_internal)
+        end
+        else begin
+            clk_gen(clk4_freq_mhz, clk4);
+        end
+    end
+    // clk5_gen
+    always begin
+        if (~clk5_en | ~pll_lock_internal) begin
+            clk5 = 0;
+            wait(clk5_en & pll_lock_internal)
+        end
+        else begin
+            clk_gen(clk5_freq_mhz, clk5);
+        end
+    end
 
 endmodule
