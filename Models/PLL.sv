@@ -71,7 +71,7 @@ module PLLSimModel #(
     localparam int CYCLES_UNTIL_LOCK = 5;   // Number of ref clk posedges until PLL locks
     localparam int REF_CLK_PERIOD_NS = 20;  // 50MHz reference clock in ns
 
-    // connecint internal regs to output wires
+    // connecting internal regs to output wires
     assign pll_lock = pll_lock_internal;
 
     // --------------------Main Simulation Logic---------------------
