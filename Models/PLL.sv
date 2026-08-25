@@ -18,7 +18,7 @@ ____________________________________________________________________
 | These waveforms are meant to illustrate why we need to           |
 | toggle the clock at half the calculated given some frequency     |
 |                                                                  |
-| Waveforms example (@ frequency = 1GHz -> period = 1ns            |
+| Waveforms example (@ frequency = 1GHz -> period = 1ns)           |
 |              _____       _____                                   |
 | clk_out:    |     |_____|     |_____|                            |
 | period (T): |<---1ns--->|                                        |
