@@ -12,6 +12,7 @@ module UpCounter #(
 )(
     input  clk                      // clock
     input  rst,                     // synchronous reset
+    input  en,                      // enable
     output count_reached            // flag to indicate that counter has reached N
 );
     /*
@@ -46,8 +47,11 @@ module UpCounter #(
                 count <= 0; // reset the count back down to 0 to loop count
             end
         end
+        else if (en) begin 
+            count <= count + 1; // increment the count if enable is asserted
+        end
         else begin
-            count <= count + 1; // increment the count
+            count <= count; // hold the count (enable deasserted)
         end
     end
 
