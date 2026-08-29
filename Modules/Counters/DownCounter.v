@@ -39,10 +39,6 @@ module DownCounter #(
         else if (load_en) begin
             count <= load_val;
         end
-        // if count is not enabled hold the counter in its current state
-        else if (~count_en) begin
-            count <= count;
-        end
         // if hold is selected, hold the count val once 0 is hit
         else if (~hold_or_loop) begin
             if (zero_hit) begin
@@ -55,9 +51,13 @@ module DownCounter #(
                 count <= load_val;
             end
         end
-        // decrement the count
-        else begin
+        // if count is enabled decrement the count
+        else if (count_en) begin
             count <= count - 1;
+        end
+        // hold the counter in its current state (enable deasserted)
+        else begin
+            count <= count;
         end
     end
 
