@@ -16,8 +16,8 @@ module DownCounter #(
 )(
     input  clk                      // clock
     input  rst,                     // synchronous reset
-    input  en,                      // enable signal to run counter
-    input  load                     // if asserted, load the count register with load_val
+    input  count_en,                // enable signal to run counter
+    input  load_en,                 // if asserted, load the count register with load_val
     input  [WIDTH-1:0] load_val,    // value with which to load the counter       
     input  hold_or_loop,            // hold the counter at 0 until reset or keep loading and counting down in a loop (0 : hold, 1 : loop)
     output count_reached            // flag to indicate that counter has reached 0
@@ -36,8 +36,12 @@ module DownCounter #(
             count <= load_val;
         end
         // load the count register with load_val
-        else if (load) begin
+        else if (load_en) begin
             count <= load_val;
+        end
+        // if count is not enabled hold the counter in its current state
+        else if (~count_en) begin
+            count <= count;
         end
         // if hold is selected, hold the count val once 0 is hit
         else if (~hold_or_loop) begin
