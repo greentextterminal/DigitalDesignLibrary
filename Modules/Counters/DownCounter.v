@@ -10,6 +10,14 @@ About the block:
 Use cases:
 - Watchdog timer
 - Standard down counter
+
+Block Model:
+                            look ahead latch
+ _________    _________    ____________________
+ | adder |    | count |    | target-1 reached |
+ |       |--->|  DFF  |--->|       DFF        |---> registered and clean (glitch free) flag
+ |_______|    |_______|    |__________________|
+ 
 */
 
 module DownCounter #(
@@ -25,10 +33,18 @@ module DownCounter #(
     output reg [WIDTH-1:0] count,   // exposing the internal count register (can be used for monitoring, indexing, etc...)
     output count_reached            // flag to indicate that counter has reached target value
 );
+    // wires
+    wire target_hit;
+    wire target_look_ahead;
+
+    // regs
+    reg latched_look_ahead;
 
     // target value hit detection
-    wire target_hit;
     assign target_hit = (count == target_val) ? 1 : 0; // drive the wire if count hits target value
+
+    // look ahead detaction (target_val + 1)
+    assign target_look_ahead = (count == (target_val + 1)) ? 1 : 0;
 
     // down counter logic
     always @ (posedge clk) begin
@@ -40,15 +56,14 @@ module DownCounter #(
         else if (load_en) begin
             count <= load_val;
         end
-        // if hold is selected, hold the count val once 0 is hit
-        else if (~hold_or_loop) begin
-            if (target_hit) begin
+        // if target is reached (actions below take place on the next clock cycle)
+        else if (target_hit) begin
+            // if hold is selected, hold the count val once target value is hit
+            if (~hold_or_loop) begin
                 count <= count;
             end
-        end
-        // if loop is selected, reload the count with load_val and count back down
-        else if (hold_or_loop) begin
-            if (target_hit) begin
+            // if loop is selected, reload the count with load_val and count back down
+            else if (hold_or_loop) begin
                 count <= load_val;
             end
         end
@@ -62,7 +77,17 @@ module DownCounter #(
         end
     end
 
+    // look ahead latch to register a target hit with no potential for combinational glitches during target hit CC
+    always @ (posedge clk) begin
+        if (target_look_ahead) begin
+            latched_look_ahead <= target_look_ahead;
+        end
+        else begin
+            latched_look_ahead <= 0;
+        end
+    end
+    
     // drive the outputs
-    assign count_reached = hit;
+    assign count_reached = latched_look_ahead;
 
 endmodule
