@@ -4,7 +4,8 @@
 About the block:
 - This is a loadable counter which counts down from (load_val-1) to 0
 - If load is asserted, the counter will load its internal count register with load_val
-- Can be set to count down and hold value at 0 or keep loading and counting down in a loop 
+- Can be set to count down and hold value at 0 or keep loading and counting down in a loop
+- Both the load and target values are bound by WIDTH, therefore set WIDTH to accomodate the largest of the two
 
 Use cases:
 - Watchdog timer
@@ -18,16 +19,16 @@ module DownCounter #(
     input  rst,                     // synchronous reset
     input  count_en,                // enable signal to run counter
     input  load_en,                 // if asserted, load the count register with load_val
-    input  [WIDTH-1:0] load_val,    // value with which to load the counter       
+    input  [WIDTH-1:0] load_val,    // value with which to load the counter (starting value)
+    input  [WIDTH-1:0] target_val,  // value that we are counting down to (target value; usually 0 unless set to non-0 value)
     input  hold_or_loop,            // hold the counter at 0 until reset or keep loading and counting down in a loop (0 : hold, 1 : loop)
-    output count_reached            // flag to indicate that counter has reached 0
+    output reg [WIDTH-1:0] count,   // exposing the internal count register (can be used for monitoring, indexing, etc...)
+    output count_reached            // flag to indicate that counter has reached target value
 );
-    // count register
-    reg [WIDTH-1:0] count;
 
-    // 0 hit detection
+    // target value hit detection
     wire zero_hit;
-    assign zero_hit = (count == 0) ? 1 : 0; // drive the wire if count hits 0
+    assign zero_hit = (count == target_val) ? 1 : 0; // drive the wire if count hits target value
 
     // down counter logic
     always @ (posedge clk) begin
@@ -35,7 +36,7 @@ module DownCounter #(
         if (rst) begin
             count <= load_val;
         end
-        // load the count register with load_val
+        // load the count register with load_val (starting value)
         else if (load_en) begin
             count <= load_val;
         end
@@ -61,7 +62,7 @@ module DownCounter #(
         end
     end
 
-    // drive the output
+    // drive the outputs
     assign count_reached = hit;
 
 endmodule
