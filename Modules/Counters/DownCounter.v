@@ -27,8 +27,8 @@ module DownCounter #(
 );
 
     // target value hit detection
-    wire zero_hit;
-    assign zero_hit = (count == target_val) ? 1 : 0; // drive the wire if count hits target value
+    wire target_hit;
+    assign target_hit = (count == target_val) ? 1 : 0; // drive the wire if count hits target value
 
     // down counter logic
     always @ (posedge clk) begin
@@ -42,13 +42,13 @@ module DownCounter #(
         end
         // if hold is selected, hold the count val once 0 is hit
         else if (~hold_or_loop) begin
-            if (zero_hit) begin
+            if (target_hit) begin
                 count <= count;
             end
         end
         // if loop is selected, reload the count with load_val and count back down
         else if (hold_or_loop) begin
-            if (zero_hit) begin
+            if (target_hit) begin
                 count <= load_val;
             end
         end
