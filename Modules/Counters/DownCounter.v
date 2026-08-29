@@ -14,7 +14,7 @@ Use cases:
 Block Model:
                             look ahead latch
  _________    _________    ____________________
- | adder |    | count |    | target-1 reached |
+ | adder |    | count |    | target+1 reached |
  |       |--->|  DFF  |--->|       DFF        |---> registered and clean (glitch free) flag
  |_______|    |_______|    |__________________|
  
