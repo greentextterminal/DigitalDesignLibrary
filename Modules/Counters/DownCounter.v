@@ -15,7 +15,7 @@ Block Model:
                             look ahead latch
  _________    _________    ____________________
  | adder |    | count |    | target+1 reached |
- |       |--->|  DFF  |--->|       DFF        |---> registered and clean (glitch free) flag
+ | block |--->|  reg  |--->|       reg        |---> registered and clean (glitch free) flag
  |_______|    |_______|    |__________________|
  
 */
@@ -31,17 +31,14 @@ module DownCounter #(
     input  [WIDTH-1:0] target_val,  // value that we are counting down to (target value; usually 0 unless set to non-0 value)
     input  hold_or_loop,            // hold the counter at 0 until reset or keep loading and counting down in a loop (0 : hold, 1 : loop)
     output reg [WIDTH-1:0] count,   // exposing the internal count register (can be used for monitoring, indexing, etc...)
-    output count_reached            // flag to indicate that counter has reached target value
+    output reg count_reached        // flag to indicate that counter has reached target value
 );
     // wires
     wire target_hit;
     wire target_look_ahead;
 
-    // regs
-    reg latched_look_ahead;
-
     // target value hit detection
-    assign target_hit = (count == target_val) ? 1 : 0; // drive the wire if count hits target value
+    assign target_hit = (count == target_val) ? 1 : 0;
 
     // look ahead detaction (target_val + 1)
     assign target_look_ahead = (count == (target_val + 1)) ? 1 : 0;
@@ -56,7 +53,7 @@ module DownCounter #(
         else if (load_en) begin
             count <= load_val;
         end
-        // if target is reached (actions below take place on the next clock cycle)
+        // if target value is reached
         else if (target_hit) begin
             // if hold is selected, hold the count val once target value is hit
             if (~hold_or_loop) begin
@@ -77,17 +74,28 @@ module DownCounter #(
         end
     end
 
-    // look ahead latch to register a target hit with no potential for combinational glitches during target hit CC
+    // target look ahead to begin raising flag + decision logic to keep flag asserted or deasserted depending on hold or loop selection
     always @ (posedge clk) begin
+        // look ahead latch to register a target hit with no potential for combinational glitches during target hit CC
         if (target_look_ahead) begin
-            latched_look_ahead <= target_look_ahead;
+            // flag asserted in same clock cycle as count reaching target value
+            count_reached <= 1;
         end
+        // logic to determine whether flag should stay asserted (hold) or deassert (loop)
+        else if (target_hit) begin
+            // if hold is selected, flag stays asserted
+            if (~hold_or_loop) begin
+                count_reached <= 1;
+            end
+            // if loop is selected, clear the flag
+            else if (hold_or_loop) begin
+                count_reached <= 0;
+            end
+        end
+        // default 
         else begin
-            latched_look_ahead <= 0;
+            count_reached <= 0;
         end
     end
-    
-    // drive the outputs
-    assign count_reached = latched_look_ahead;
 
 endmodule
