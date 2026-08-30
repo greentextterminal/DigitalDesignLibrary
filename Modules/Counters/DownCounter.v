@@ -23,7 +23,7 @@ Block Model:
 module DownCounter #(
     parameter WIDTH = 8
 )(
-    input  clk                      // clock
+    input  clk,                     // clock
     input  rst,                     // synchronous reset
     input  count_en,                // enable signal to run counter
     input  load_en,                 // if asserted, load the count register with load_val
