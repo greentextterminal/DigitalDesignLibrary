@@ -95,4 +95,10 @@ module DownCounter_TB;
         $monitor("count_reached @ time=%t ", $realtime);
     end
 
+    initial begin
+        // dump waves
+        $dumpfile("dump.vcd");
+        $dumpvars(0, tb);
+    end
+
 endmodule
