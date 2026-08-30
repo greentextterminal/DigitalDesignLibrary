@@ -20,10 +20,10 @@ module DownCounter_TB;
     logic rst,
     logic count_en,
     logic load_en,
-    logic load_val,
-    logic target_val,
+    logic [WIDTH-1:0] load_val,
+    logic [WIDTH-1:0] target_val,
     logic hold_or_loop,
-    logic count,
+    logic [WIDTH-1:0] count,
     logic count_reached
 
     // DUT instantiation
@@ -61,12 +61,12 @@ module DownCounter_TB;
     // ---------------------------Value Initialization Block--------------------------
     initial begin
         clk          = 0;
-        rst          = 1;     // asserted
+        rst          = 1;           // asserted
         count_en     = 0;
         load_en      = 0;
-        load_val     = 8'd10; // starting value
-        target_val   = 8'd0;  // target value
-        hold_or_loop = 0;     // hold selected
+        load_val     = START_VAL;   // starting value
+        target_val   = TARGET_VAL;  // target value
+        hold_or_loop = 0;           // hold selected
     end
 
     // --------------------------------Clock Generator--------------------------------
