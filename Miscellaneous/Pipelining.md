@@ -1,5 +1,4 @@
-/* 
-1) Pipelining
+# Pipelining
 In piplining you break an operation up into stages. By doing so you stagger the logic
 in a way that you can perform incremental logical computations such that all the logic
 necessary for the greater logical operation will be ready and correcly calculated. This
@@ -20,13 +19,13 @@ propagation delay there will be moments of incorrect/unknown outputs as the valu
 this we used clock based methodologies with memory elements such as registers that allow for the scheduling
 or sequencing of logical operations which guarantee values up to a certain point in time (clock cycle) 
 within the greater circuit.
-*/
 
-/*
+
 Assuming the variables we are operating on are 4 bit wide the block diagram for the math operation is as follows:
 The largest number that can be represented by 4 bits is 15
 To prevent overflow the bit widths of the add and multiply blocks are adjusted based on the input bit widths and the operation.
 
+```
                stage 1                       stage 2
              |         |                  |capture     |
              | capture |                  |parallelized|
@@ -47,9 +46,9 @@ To prevent overflow the bit widths of the add and multiply blocks are adjusted b
              | |_____| |                  |            |
              |         |                  |            |
 
-*/
+```
 
-
+```systemverilog
 // Creating a 2 stage pipeline
 wire rst;                                          // reset input
 wire [3:0] a, b, c, d;                             // input variables
@@ -82,6 +81,4 @@ always @ (posedge clk) begin
     e <= (adder_stage2 - multiplier_stage2); 
   end
 end
-
-
-
+```
