@@ -13,23 +13,24 @@ module DownCounter_TB;
     localparam int CLK_EDGES_UNTIL_RST_RELEASE = 5;
     // width casting params based on WIDTH param
     localparam     START_VAL                   = WIDTH'(10);
+    localparam     START_VAL_2                 = WIDTH'(5);
     localparam     TARGET_VAL                  = WIDTH'(0);
     
     // signal declaration
-    logic clk,
-    logic rst,
-    logic count_en,
-    logic load_en,
-    logic [WIDTH-1:0] load_val,
-    logic [WIDTH-1:0] target_val,
-    logic hold_or_loop,
-    logic [WIDTH-1:0] count,
-    logic count_reached
+    logic clk;
+    logic rst;
+    logic count_en;
+    logic load_en;
+    logic [WIDTH-1:0] load_val;
+    logic [WIDTH-1:0] target_val;
+    logic hold_or_loop;
+    logic [WIDTH-1:0] count;
+    logic count_reached;
 
     // DUT instantiation
-    DownCounter dut #(
-        .WIDTH(WIDTH)
-    )(
+    DownCounter #(
+        .WIDTH(WIDTH)) DUT
+    (
         .clk(clk),
         .rst(rst),
         .count_en(count_en),
@@ -40,23 +41,6 @@ module DownCounter_TB;
         .count(count),
         .count_reached(count_reached)
     );
-
-    // -------------------Clock Edge Counter to Control Reset Release-----------------
-    integer clock_posedge_cnt = 0;
-    always @ (posedge clk) begin
-        if (clock_posedge_cnt == CLK_EDGES_UNTIL_RST_RELEASE) begin
-            clock_posedge_cnt = clock_posedge_cnt;
-            rst               = 1;
-        end
-        else begin
-            clock_posedge_cnt = clock_posedge_cnt + 1;
-        end
-    end
-    //
-    // --------Reset the count when reset is asserted again (event controlled)--------
-    always @ (posedge rst) begin
-        clock_posedge_cnt = 0;
-    end
 
     // ---------------------------Value Initialization Block--------------------------
     initial begin
@@ -71,34 +55,70 @@ module DownCounter_TB;
 
     // --------------------------------Clock Generator--------------------------------
     initial begin
-        // toggling every 1ns -> T = 2ns -> F = 500MHz
+        // toggling every 10ns -> T = 20ns -> F = 50MHz
         forever begin
-            #1 clk = ~clk;
+            #10 clk = ~clk;
         end
     end
+                                                
+    // -------------------------------------Tasks-------------------------------------
+    // This task creates delays based on a parameterized number of clock counts
+    task automatic clock_edge_delay(
+        input int clock_edge_count
+    );
+        repeat (clock_edge_count) begin
+            @(posedge clk);
+        end
+    endtask
 
     // -------------------------------Stimulus Generator------------------------------
     initial begin
-        // wait until reset is released to proceed with driving the stimulus
-        wait(~rst)
-        $display("Reset deasserted @ time %0t", $realtime);
+        // holding reset before release
+        clock_edge_delay(CLK_EDGES_UNTIL_RST_RELEASE);
+        rst <= 0;
+        
+        // enable the counter
+        count_en <= 1;
 
-        // begin decrementing
-        count_en = 1;
+        // wait until flag goes high;
+        wait(count_reached);
+
+        // wait for 5 clock edges before assertnng reset to test flags ability to hold state
+        clock_edge_delay(5);
+        rst <= 1;
+        
+        // holding reset before release
+        clock_edge_delay(CLK_EDGES_UNTIL_RST_RELEASE);
+        rst <= 0;
+       
+        // disable the counter
+        count_en <= 0;
+
+        // set the counter to loop
+        hold_or_loop <= 1;
+
+        // load new value to test loop capability
+        load_en <= 1;
+        load_val <= START_VAL_2;
+
+        // wait for 1 cc
+        clock_edge_delay(1);
+
+        // deassert load en
+        load_en <= 0;
+
+        // enable the counter
+        count_en <= 1;
+        
+        // end the simulation
+        #800
+        $finish;
     end
 
-    // ---------------------------Monitor and Display block---------------------------
+    // --------------------------------Waveform Dumping-------------------------------
     initial begin
-        // monitor count
-        $monitor("count is %d @ time=%t is ", count, $realtime);
-        // monitor count_reached
-        $monitor("count_reached @ time=%t ", $realtime);
-    end
-
-    initial begin
-        // dump waves
         $dumpfile("dump.vcd");
-        $dumpvars(0, tb);
+        $dumpvars(0, DownCounter_TB);
     end
 
 endmodule
