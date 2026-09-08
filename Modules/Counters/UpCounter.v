@@ -1,19 +1,33 @@
 /*
-UpCounter
+----------------UpCounter----------------
 
 - This block counts up to N
 - N is loaded into the counter
 - Can be set to count up to and hold value until reset or overflow and keep counting in a loop
+
+About the block:
+- This is a loadable counter which counts up from load_val to (target_val-1)
+- If load is asserted, the counter will load its internal count register with 0
+- Can be set to count up and hold value at load_val or keep loading and counting up in a loop
+- Both the load and target values are bound by WIDTH, therefore set WIDTH to accomodate the largest of the two
+
+Use cases:
+- Standard up counter
+- Timer
 */
 
 module UpCounter #(
-    parameter N                = 1; // default value is a count of at least 1
-    parameter hold_or_overflow = 0, // hold to keep the counter at N until reset, otherwise overflow and loop (0 for hold and 1 for overflow)
+    parameter WIDTH = 8
 )(
     input  clk                      // clock
     input  rst,                     // synchronous reset
-    input  en,                      // enable
-    output count_reached            // flag to indicate that counter has reached N
+    input  count_en,                // enable signal to run counter
+    input  load_en                  // if asserted, load the count register with load_val
+    input  [WIDTH-1:0] load_val,    // value with which to load the counter (starting value; may be non-0 in some cases)
+    input  [WIDTH-1:0] target_val,  // value that we are counting up to (target value)
+    input  hold_or_loop,            // hold the counter at 0 until reset or keep loading and counting down in a loop (0 : hold, 1 : loop)
+    output reg [WIDTH-1:0] count,   // exposing count register
+    output reg count_reached        // flag to indicate that counter has reached load_val
 );
     /*
         CC   |  count
@@ -25,33 +39,41 @@ module UpCounter #(
         N    |  N - 1
     */
 
-    // count register
-    reg [($clog2(N) - 1) : 0] count;
+    // wires
+    wire hit;
+    
+    // regs
+    reg [WIDTH-1:0] count;
 
     // count hit detection
-    wire hit;
     assign hit = (count == (N-1)) ? 1 : 0;
 
     // always block to count up
     always @ (posedge clk) begin
+        // reset the count back down to 0
         if (rst) begin
-            count <= 0; // reset the count back down to 0
+            count <= load_val;
         end
-        else if (~hold_or_overflow) begin // hold case
-            if (hit) begin
-                count <= count; // while count is being held, so if the count_reached flag
+        // if hit detection logic
+        else if (hit) begin
+            // hold case
+            if (~hold_or_overflow) begin
+                // while count is being held, so if the count_reached flag
+                count <= count;
+            end
+            // overflow case
+            else if (hold_or_overflow) begin
+                // reset the count back down to load_val to loop count
+                count <= load_val;
             end
         end
-        else if (hold_or_overflow) begin // overflow case
-            if (hit) begin
-                count <= 0; // reset the count back down to 0 to loop count
-            end
+        // increment the count if enable is asserted
+        else if (count_en) begin 
+            count <= count + 1;
         end
-        else if (en) begin 
-            count <= count + 1; // increment the count if enable is asserted
-        end
+        // hold the count (enable deasserted)
         else begin
-            count <= count; // hold the count (enable deasserted)
+            count <= count;
         end
     end
 
