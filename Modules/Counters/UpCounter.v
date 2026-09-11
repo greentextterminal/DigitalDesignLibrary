@@ -22,9 +22,9 @@ Assumptions:
 - hit is registered
 
 Create a lookahead flag so that the outut can sample and cleanly register this output as a hit
-Hit is asserted when the counts value is N - 1
-Lookahead asserts when count is N - 2
-Hit is a register which samples the lookeahead to cleanly register the data
+Hit is asserted when the counts value is N - 1 and is used for controlling the count logic
+Lookahead asserts when count is N - 2 and is used for sampling purposes by the count_reached register
+count_reached is a register which samples the lookeahead to cleanly register the data
 If the counter is configured to hold, then the hit will remain asserted until reset
 If the counter is configured to overflow, then the hit will remain asserted for 1 clock cycle and reload a start value
              ___     ___     ___     ___     ___     ___
@@ -36,9 +36,11 @@ count       0       1       2       3       4       5    ...
                                      _______
 lookahead  _________________________|       |____________________
                                              _______
-hit (overflow) _____________________________|       |____________
+hit            _____________________________|       |____________
+                                             _______
+count_reached (overflow) ___________________|       |____________
                                              _______________ 
-hit (hold)     _____________________________|               ...
+count_reached (hold)     ___________________|               ...
 
 
 Relationship between clock cycle (CC) and count:
@@ -70,9 +72,10 @@ module UpCounter #(
     wire target_look_ahead;
 
     // count hit detection
-    assign hit = (count == (N-1)) ? 1 : 0;
+    assign hit = (count == (N - 1)) ? 1 : 0;
 
-    // 
+    // count hit lookahead detection
+    assign target_look_ahead = (count == (N - 2)) ? 1 : 0;
 
     // always block to count up
     always @ (posedge clk) begin
@@ -103,9 +106,31 @@ module UpCounter #(
         end
     end
 
-    //
-
-    // drive output with hit wire
-    assign count_reached = hit;
+    // count_reached register logic
+    always @ (posedge clk) begin
+        // clear the flag
+        if (rst) begin
+            count_reached <= 0;
+        end
+        // if lookahead flag is high then count reached asserts in the next cycle
+        else if (target_look_ahead) begin
+            count_reached <= 1;
+        end
+        // if count hits target then count_reached behavior is determined based on hold or overflow config
+        else if (hit) begin
+            // hold (only clears during a reset)
+            if (~hold_or_loop) begin
+                count_reached <= count_reached;
+            end
+            // loop
+            else if (hold_or_loop) begin
+                count_reached <= 0;
+            end
+        end
+        // default: hold current value
+        else begin
+            count_reached <= count_reached;
+        end
+    end
     
 endmodule
