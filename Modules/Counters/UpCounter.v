@@ -3,7 +3,7 @@
 
 - This block counts up to N
 - N is loaded into the counter
-- Can be set to count up to and hold value until reset or overflow and keep counting in a loop
+- Can be set to count up to and hold value until reset or loop and keep counting in a loop
 
 About the block:
 - This is a loadable counter which counts up from load_val to (target_val-1)
@@ -19,30 +19,29 @@ Use cases:
 Assumptions: 
 - count started from 0 coming out of reset 
 - target value N is 5 (count the edges or clock cycles)
-- hit is registered
 
-Create a lookahead flag so that the outut can sample and cleanly register this output as a hit
-Hit is asserted when the counts value is N - 1 and is used for controlling the count logic
-Lookahead asserts when count is N - 2 and is used for sampling purposes by the count_reached register
+Create a lookahead flag so that the outut can sample and cleanly register this output as a registered flag
+target_hit is asserted when the counts value is N - 1 and is used for controlling the count logic
+target_look_ahead asserts when count is N - 2 and is used for sampling purposes by the count_reached register
 count_reached is a register which samples the lookeahead to cleanly register the data
-If the counter is configured to hold, then the hit will remain asserted until reset
-If the counter is configured to overflow, then the hit will remain asserted for 1 clock cycle and reload a start value
-             ___     ___     ___     ___     ___     ___
-clk      ___|   |___|   |___|   |___|   |___|   |___|   |___
+If the counter is configured to hold, then the count_reached will remain asserted until reset
+If the counter is configured to loop, then the count_reached will remain asserted for 1 clock cycle then reload a start value
+                             ___     ___     ___     ___     ___     ___
+clk                      ___|   |___|   |___|   |___|   |___|   |___|   |___
 
-clk cycle   1       2       3       4       5       6    ...
+clk cycle                   1       2       3       4       5       6    ...
 
-count       0       1       2       3       4      ...   ...
-                                     _______
-lookahead  _________________________|       |____________________
-                                             _______
-hit (overflow) _____________________________|       |____________
-                                             _______
-count_reached (overflow) ___________________|       |____________
-                                             _______
-hit (hold) _________________________________|       |____________
-                                             _______________ 
-count_reached (hold)     ___________________|               
+count                       0       1       2       3       4      ...   ...
+                                                     _______
+lookahead                ___________________________|       |_______________
+                                                             _______
+target_hit (loop)        ___________________________________|       |_______
+                                                             _______
+count_reached (loop)     ___________________________________|       |_______
+                                                             _______________
+target_hit (hold)        ___________________________________|       
+                                                             _______________ 
+count_reached (hold)     ___________________________________|               
 
 
 Relationship between clock cycle (CC) and count:
@@ -70,11 +69,11 @@ module UpCounter #(
     output reg count_reached        // flag to indicate that counter has reached load_val
 );
     // wires
-    wire hit;
+    wire target_hit;
     wire target_look_ahead;
 
     // count hit detection
-    assign hit = (count == (N - 1)) ? 1 : 0;
+    assign target_hit = (count == (N - 1)) ? 1 : 0;
 
     // count hit lookahead detection
     assign target_look_ahead = (count == (N - 2)) ? 1 : 0;
@@ -86,14 +85,14 @@ module UpCounter #(
             count <= load_val;
         end
         // if hit detection logic
-        else if (hit) begin
+        else if (target_hit) begin
             // hold case
-            if (~hold_or_overflow) begin
+            if (~hold_or_loop) begin
                 // while count is being held, so if the count_reached flag
                 count <= count;
             end
-            // overflow case
-            else if (hold_or_overflow) begin
+            // loop case
+            else if (hold_or_loop) begin
                 // reset the count back down to load_val to loop count
                 count <= load_val;
             end
@@ -118,8 +117,8 @@ module UpCounter #(
         else if (target_look_ahead) begin
             count_reached <= 1;
         end
-        // if count hits target then count_reached behavior is determined based on hold or overflow config
-        else if (hit) begin
+        // if count hits target then count_reached behavior is determined based on hold or loop config
+        else if (target_hit) begin
             // hold (only clears during a reset)
             if (~hold_or_loop) begin
                 count_reached <= 1;
