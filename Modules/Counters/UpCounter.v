@@ -1,8 +1,8 @@
 /*
 --------------------------------UpCounter--------------------------------
 
-- This block counts up to N
-- N is loaded into the counter
+- This block counts up to target_val
+- The starting value load_val is loaded into the counter
 - Can be set to count up to and hold value until reset or loop and keep counting in a loop
 
 About the block:
@@ -58,7 +58,7 @@ N    |  N - 1
 module UpCounter #(
     parameter WIDTH = 8
 )(
-    input  clk                      // clock
+    input  clk,                     // clock
     input  rst,                     // synchronous reset
     input  count_en,                // enable signal to run counter
     input  load_en                  // if asserted, load the count register with load_val
