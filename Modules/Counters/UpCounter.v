@@ -123,7 +123,7 @@ module UpCounter #(
             if (~hold_or_loop) begin
                 count_reached <= 1;
             end
-            // loop (assert count reahced flag for 1 cc then clear)
+            // loop (assert count reached flag for 1 cc then clear)
             else if (hold_or_loop) begin
                 count_reached <= 0;
             end
