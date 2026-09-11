@@ -1,5 +1,5 @@
 /*
-----------------UpCounter----------------
+--------------------------------UpCounter--------------------------------
 
 - This block counts up to N
 - N is loaded into the counter
@@ -14,6 +14,42 @@ About the block:
 Use cases:
 - Standard up counter
 - Timer
+
+--------------------------------Waveform example--------------------------------
+Assumptions: 
+- count started from 0 coming out of reset 
+- target value N is 5 (count the edges or clock cycles)
+- hit is registered
+
+Create a lookahead flag so that the outut can sample and cleanly register this output as a hit
+Hit is asserted when the counts value is N - 1
+Lookahead asserts when count is N - 2
+Hit is a register which samples the lookeahead to cleanly register the data
+If the counter is configured to hold, then the hit will remain asserted until reset
+If the counter is configured to overflow, then the hit will remain asserted for 1 clock cycle and reload a start value
+             ___     ___     ___     ___     ___     ___
+clk      ___|   |___|   |___|   |___|   |___|   |___|   |___
+
+clk cycle   1       2       3       4       5       6    ...
+
+count       0       1       2       3       4       5    ...
+                                     _______
+lookahead  _________________________|       |____________________
+                                             _______
+hit (overflow) _____________________________|       |____________
+                                             _______________ 
+hit (hold)     _____________________________|               ...
+
+
+Relationship between clock cycle (CC) and count:
+CC   |  count
+-----|----------
+1    |  0
+2    |  1
+3    |  2
+...  |  ...
+N    |  N - 1
+
 */
 
 module UpCounter #(
@@ -29,24 +65,14 @@ module UpCounter #(
     output reg [WIDTH-1:0] count,   // exposing count register
     output reg count_reached        // flag to indicate that counter has reached load_val
 );
-    /*
-        CC   |  count
-        -----|----------
-        1    |  0
-        2    |  1
-        3    |  2
-        ...  |  ...
-        N    |  N - 1
-    */
-
     // wires
     wire hit;
-    
-    // regs
-    reg [WIDTH-1:0] count;
+    wire target_look_ahead;
 
     // count hit detection
     assign hit = (count == (N-1)) ? 1 : 0;
+
+    // 
 
     // always block to count up
     always @ (posedge clk) begin
@@ -76,6 +102,8 @@ module UpCounter #(
             count <= count;
         end
     end
+
+    //
 
     // drive output with hit wire
     assign count_reached = hit;
