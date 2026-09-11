@@ -32,15 +32,17 @@ clk      ___|   |___|   |___|   |___|   |___|   |___|   |___
 
 clk cycle   1       2       3       4       5       6    ...
 
-count       0       1       2       3       4       5    ...
+count       0       1       2       3       4      ...   ...
                                      _______
 lookahead  _________________________|       |____________________
                                              _______
-hit            _____________________________|       |____________
+hit (overflow) _____________________________|       |____________
                                              _______
 count_reached (overflow) ___________________|       |____________
+                                             _______
+hit (hold) _________________________________|       |____________
                                              _______________ 
-count_reached (hold)     ___________________|               ...
+count_reached (hold)     ___________________|               
 
 
 Relationship between clock cycle (CC) and count:
@@ -120,16 +122,16 @@ module UpCounter #(
         else if (hit) begin
             // hold (only clears during a reset)
             if (~hold_or_loop) begin
-                count_reached <= count_reached;
+                count_reached <= 1;
             end
-            // loop
+            // loop (assert count reahced flag for 1 cc then clear)
             else if (hold_or_loop) begin
                 count_reached <= 0;
             end
         end
-        // default: hold current value
+        // default
         else begin
-            count_reached <= count_reached;
+            count_reached <= 0;
         end
     end
     
