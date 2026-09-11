@@ -73,10 +73,10 @@ module UpCounter #(
     wire target_look_ahead;
 
     // count hit detection
-    assign target_hit = (count == (N - 1)) ? 1 : 0;
+    assign target_hit = (count == (target_val - 1)) ? 1 : 0;
 
     // count hit lookahead detection
-    assign target_look_ahead = (count == (N - 2)) ? 1 : 0;
+    assign target_look_ahead = (count == (target_val - 2)) ? 1 : 0;
 
     // always block to count up
     always @ (posedge clk) begin
